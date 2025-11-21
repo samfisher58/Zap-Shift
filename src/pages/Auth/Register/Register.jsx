@@ -1,14 +1,27 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
+import useAuth from '../../../hooks/useAuth';
+import { Link } from 'react-router';
 
 const Register = () => {
 	const { register, handleSubmit,formState:{errors} } = useForm();
+    const { registerUser } = useAuth();
+
 	const handleRegistration = data => {
 		console.log(data);
+        registerUser(data.email , data.password)
+        .then(result =>{
+            console.log(result.user);
+        })
+        .catch (error=>{
+            console.log(error);
+        })
 	};
 
 	return (
 		<div>
+			<h3 className="text-3xl text-center my-2 font-bold">Welcome to ZapShift!</h3>
+			<p className="text-center text-2xl font-semibold">Create an account : </p>
 			<form onSubmit={handleSubmit(handleRegistration)}>
 				<fieldset className="fieldset">
 					<label className="label">Email</label>
@@ -42,8 +55,8 @@ const Register = () => {
 							Password must be 6 character or higher{' '}
 						</p>
 					)}
-					{errors.password?.type === "pattern" && (
-						<ul className='text-red-600'>
+					{errors.password?.type === 'pattern' && (
+						<ul className="text-red-600">
 							<li>Minimum 6 characters</li>
 							<li>At least one uppercase letter</li>
 							<li>At least one lowercase letter</li>
@@ -55,8 +68,14 @@ const Register = () => {
 					<div>
 						<a className="link link-hover">Forgot password?</a>
 					</div>
-					<button className="btn btn-neutral mt-4">Login</button>
+					<button className="btn btn-neutral mt-4">Register</button>
 				</fieldset>
+				<p className="text-center mt-2">
+					Already have an account?
+					<Link to="/login" className="text-blue-600 font-bold underline">
+						Login
+					</Link>
+				</p>
 			</form>
 		</div>
 	);

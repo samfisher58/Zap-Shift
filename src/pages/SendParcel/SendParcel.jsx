@@ -1,27 +1,83 @@
 import React from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useLoaderData } from 'react-router';
+import Swal from 'sweetalert2';
+import useAxiosSecure from '../../hooks/useAxiosSecure';
+import useAuth from '../../hooks/useAuth';
 
 const SendParcel = () => {
-    const {register,handleSubmit, control ,formState:{ errors }}= useForm();
-    const serviceCenter = useLoaderData();
-    const regionDuplicate = serviceCenter.map(c=>c.region)
-    console.log(regionDuplicate);
-    const region = [...new Set(regionDuplicate)];
-    const senderRegion = useWatch({control, name:'senderRegion'});
-    const receiverRegion = useWatch({ control, name: "receiverRegion" });
+	const {
+		register,
+		handleSubmit,
+		control,
+		// formState:{ errors }
+	} = useForm();
+	const {user}  = useAuth();
+	
 
-    const districtByRegion = region =>{
-        const regionDistrict = serviceCenter.filter(c=>c.region === region )
-        const districts = regionDistrict.map(d=>d.district);
-        return districts;
-    }
-    console.log(region);
+	const axiosSecure = useAxiosSecure();
 
-    const handleSendParcel=(data)=>{
-        console.log(data);
-    }
+	const serviceCenter = useLoaderData();
+	const regionDuplicate = serviceCenter.map(c => c.region);
+	const region = [...new Set(regionDuplicate)];
+	const senderRegion = useWatch({ control, name: 'senderRegion' });
+	const receiverRegion = useWatch({ control, name: 'receiverRegion' });
 
+	const districtByRegion = region => {
+		const regionDistrict = serviceCenter.filter(c => c.region === region);
+		const districts = regionDistrict.map(d => d.district);
+		return districts;
+	};
+
+	const handleSendParcel = data => {
+		console.log(data);
+		const isDocument = data.parcelType === 'document';
+		const isSameDistrict = data.senderDistricts === data.ReceiverDistricts;
+		const parcelWeight = parseFloat(data.parcelWeight);
+		let cost = 0;
+		if (isDocument) {
+			cost = isSameDistrict ? 60 : 80;
+		} else {
+			if (parcelWeight < 3) {
+				cost = isSameDistrict ? 110 : 150;
+			} else {
+				const minCharge = isSameDistrict ? 110 : 150;
+				const extraWeight = data.parcelWeight - 3;
+				const extraCharge = isSameDistrict
+					? extraWeight * 40
+					: extraWeight * 40 + 40;
+				cost = minCharge + extraCharge;
+			}
+		}
+		console.log(cost);
+		Swal.fire({
+			title: 'Are you agree with the cost?',
+			text: `Total cost: ${cost}`,
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonColor: '#3085d6',
+			cancelButtonColor: '#d33',
+			confirmButtonText: 'Yes, I agree',
+		}).then(result => {
+			if (result.isConfirmed) {
+				// save parcel info to database
+
+				axiosSecure.post('/parcels',data)
+				.then( res=>{
+					console.log("database saved data:", res.data);
+				} )
+
+
+
+
+				// Swal.fire({
+				// 	title: 'Deleted!',
+				// 	text: 'Your file has been deleted.',
+				// 	icon: 'success',
+				// });
+			}
+		});
+	};
 
 	return (
 		<div>
@@ -86,6 +142,7 @@ const SendParcel = () => {
 							<input
 								type="text"
 								{...register('senderName')}
+								defaultValue={user?.displayName}
 								className="input"
 								placeholder="Sender Name"
 							/>
@@ -94,6 +151,7 @@ const SendParcel = () => {
 							<input
 								type="email"
 								{...register('senderEmail')}
+								defaultValue={user?.email}
 								className="input"
 								placeholder="Sender Email"
 							/>
